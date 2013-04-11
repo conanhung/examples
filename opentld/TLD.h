@@ -70,7 +70,8 @@ private:
   ///Parameters
   int bbox_step;
   int min_win;
-  int patch_size;
+  //int patch_size;
+  Size patch_size;
   //initial parameters for positive examples
   int num_closest_init;
   int num_warps_init;
@@ -132,7 +133,7 @@ public:
   //Constructors
   TLD();
   TLD(const cv::FileNode& file);
-  void read(const cv::FileNode& file);
+  void read(const cv::FileNode& file, Size patch_size_);
   //Methods
   void init(const cv::Mat& frame1,const cv::Rect &box, FILE* bb_file);
   void generatePositiveData(const cv::Mat& frame, int num_warps);

@@ -18,15 +18,15 @@ TLD::TLD()
 }
 
 TLD::TLD(const FileNode& file){
-  read(file);
+  read(file,Size(15,15));
 }
 
-void TLD::read(const FileNode& file){
+void TLD::read(const FileNode& file, Size patch_size_){
   ///Bounding Box Parameters
   min_win = (int)file["min_win"];
   ///Genarator Parameters
   //initial parameters for positive examples
-  patch_size = (int)file["patch_size"];
+  patch_size = patch_size_;
   num_closest_init = (int)file["num_closest_init"];
   num_warps_init = (int)file["num_warps_init"];
   noise_init = (int)file["noise_init"];
@@ -65,7 +65,7 @@ void TLD::init(const Mat& frame1,const Rect& box,FILE* bb_file){
   dt.bb.reserve(grid.size());
   good_boxes.reserve(grid.size());
   bad_boxes.reserve(grid.size());
-  pEx.create(patch_size,patch_size,CV_64F);
+  pEx.create(patch_size.width,patch_size.height,CV_64F);
   //Init Generator
   generator = PatchGenerator (0,0,noise_init,true,1-scale_init,1+scale_init,-angle_init*CV_PI/180,angle_init*CV_PI/180,-angle_init*CV_PI/180,angle_init*CV_PI/180);
   getOverlappingBoxes(box,num_closest_init);
@@ -168,7 +168,7 @@ void TLD::generatePositiveData(const Mat& frame, int num_warps){
 
 void TLD::getPattern(const Mat& img, Mat& pattern,Scalar& mean,Scalar& stdev){
   //Output: resized Zero-Mean patch
-  resize(img,pattern,Size(patch_size,patch_size));
+  resize(img,pattern,patch_size);
   meanStdDev(pattern,mean,stdev);
   pattern.convertTo(pattern,CV_32F);
   pattern = pattern-mean.val[0];
@@ -267,7 +267,7 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
         int cx=0,cy=0,cw=0,ch=0;
         int close_detections=0;
         for (size_t i=0;i<dbb.size();i++){
-          if(bbOverlap(tbb,dbb[i])>0.7){                     // Get mean of close detections
+          if(bbOverlap(tbb,dbb[i])>0.3){                     // Get mean of close detections
             cx += dbb[i].x;
             cy +=dbb[i].y;
             cw += dbb[i].width;
@@ -313,8 +313,9 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
     fprintf(bb_file,"%d,%d,%d,%d,%d,%d,%f\n",lastbox.x,lastbox.y,lastbox.br().x,lastbox.br().y,lastbox.x+lastbox.width/2,lastbox.y+lastbox.height/2,lastconf);
   else
     fprintf(bb_file,"NaN,NaN,NaN,NaN,NaN,NaN,NaN\n");
+  // learning
   if (lastvalid && tl)
-    learn(img2);
+	learn(img2);
 }
 
 
@@ -469,7 +470,7 @@ void TLD::detect(const cv::Mat& frame){
   dt.conf1 = vector<float>(detections);                                //  Relative Similarity (for final nearest neighbour classifier)
   dt.conf2 =vector<float>(detections);                                 //  Conservative Similarity (for integration with tracker)
   dt.isin = vector<vector<int> >(detections,vector<int>(3,-1));        //  Detected (isin=1) or rejected (isin=0) by nearest neighbour classifier
-  dt.patch = vector<Mat>(detections,Mat(patch_size,patch_size,CV_32F));//  Corresponding patches
+  dt.patch = vector<Mat>(detections,Mat(patch_size.width,patch_size.height,CV_32F));//  Corresponding patches
   int idx;
   Scalar mean, stdev;
   float nn_th = classifier.getNNTh();
@@ -480,7 +481,7 @@ void TLD::detect(const cv::Mat& frame){
     classifier.NNConf(dt.patch[i],dt.isin[i],dt.conf1[i],dt.conf2[i]);  //  Evaluate nearest neighbour classifier
     dt.patt[i]=tmp.patt[idx];
     //printf("Testing feature %d, conf:%f isin:(%d|%d|%d)\n",i,dt.conf1[i],dt.isin[i][0],dt.isin[i][1],dt.isin[i][2]);
-    if (dt.conf1[i]>nn_th){                                               //  idx = dt.conf1 > tld.model.thr_nn; % get all indexes that made it through the nearest neighbour
+	if (dt.conf1[i]>nn_th){                                               //  idx = dt.conf1 > tld.model.thr_nn; % get all indexes that made it through the nearest neighbour
       dbb.push_back(grid[idx]);                                         //  BB    = dt.bb(:,idx); % bounding boxes
       dconf.push_back(dt.conf2[i]);                                     //  Conf  = dt.conf2(:,idx); % conservative confidences
     }
@@ -567,12 +568,12 @@ void TLD::learn(const Mat& img){
 }
 
 void TLD::buildGrid(const cv::Mat& img, const cv::Rect& box){
-  const float SHIFT = 0.1;
+  const float SHIFT = 0.1f;
   // Array of scale factor
   /*const float SCALES[] = {0.16151,0.19381,0.23257,0.27908,0.33490,0.40188,0.48225,
                           0.57870,0.69444,0.83333,1,1.20000,1.44000,1.72800,
                           2.07360,2.48832,2.98598,3.58318,4.29982,5.15978,6.19174};*/
-  // In our project (tavi-guide), we use the scale factor of 1
+  // In our project (Intraoperative Tracking of Aortic Valve Plane), we use the scale factor of 1
   const float SCALES[] = {1};
   int width, height, min_bb_side;
   //Rect bbox;
@@ -626,7 +627,7 @@ void TLD::getOverlappingBoxes(const cv::Rect& box1,int num_closest){
       max_overlap = grid[i].overlap;
       best_box = grid[i];
     }
-    if (grid[i].overlap > 0.6){
+    if (grid[i].overlap > 0.5){
       good_boxes.push_back(i);
     }
     else if (grid[i].overlap < bad_overlap){
@@ -678,7 +679,6 @@ int TLD::clusterBB(const vector<BoundingBox>& dbb,vector<int>& indexes){
       D.at<float>(j,i) = d;
     }
   }
-  //2. Initialize disjoint clustering
   //2. Initialize disjoint clustering
   //float L[c-1]; //Level
 	float *L = (float*) malloc((c-1)*sizeof(float));

@@ -10,26 +10,21 @@ using namespace cv;
 using namespace std;
 
 /*
-cd Projects/tavi/build
-./OpenTLD -p ../parameters.yml -b ../datasets/11_tavi/init.txt -s ../datasets/11_tavi/tavi.mov -tl
+./run_tld -p ../parameters.yml -b ../datasets/11_tavi/init.txt -s ../datasets/11_tavi/tavi.mov -tl
 */
 
 //Global variables
 Rect box;
 Rect roi;
-Line vplan, cplan;
 bool drawing_box = false;
 bool gotBB = false;
 bool gotROI = false;
-bool gotVPlan = false;
-bool gotCPlan = false;
 bool tl = false;
 bool rep = false;
 bool fromfile=false;
 bool fromfolder=false;
 string video;
 string folder;
-vector<double> plottingpts[2];
 
 void readBB(char* file){
   FILE *fp = fopen(file,"r");
@@ -47,22 +42,6 @@ void readBB(char* file){
     if( fscanf(fp, "bbox:%d,%d,%d,%d\n", &x1, &y1, &x2, &y2) == 4 ){
       box = Rect(x1-rx,y1-ry,x2-x1,y2-y1);
       gotBB = true;
-    }
-  }
-  // valve plan
-  {
-    if( fscanf(fp, "vplan:%d,%d,%d,%d\n", &x1, &y1, &x2, &y2) == 4 ){
-      vplan.start=Point2f(x1,y1);
-      vplan.end=Point2f(x2,y2);
-      gotVPlan = true;
-    }
-  }
-  // coronary plan
-  {
-    if( fscanf(fp, "cplan:%d,%d,%d,%d", &x1, &y1, &x2, &y2) == 4 ){
-      cplan.start=Point2f(x1,y1);
-      cplan.end=Point2f(x2,y2);
-      gotCPlan = true;
     }
   }
 }
@@ -194,10 +173,21 @@ void morphology( const Mat &src, Mat &dst,int operation = MORPH_CLOSE, int morph
   */
 int main(int argc, char * argv[]){
   VideoCapture capture;
-  capture.open(0);
   FileStorage fs;
   // Read options
-  read_options(argc,argv,capture,fs);
+  //read_options(argc,argv,capture,fs);
+  
+  // HACK read option
+
+  fs.open("parameters.yml", FileStorage::READ);
+  capture.open("data//men_jac.mov");
+
+  roi = Rect(237,218,120,120);
+  box = Rect(287-237,260-218,35,24);
+  gotBB = true;
+  fromfile = true;
+  tl=true;
+
   printf("Initial ROI = x:%d y:%d w:%d h:%d\n",roi.x,roi.y,roi.width,roi.height);
   // Init camera
   if(!fromfolder)
@@ -210,29 +200,23 @@ int main(int argc, char * argv[]){
   cvNamedWindow("Frames",CV_WINDOW_AUTOSIZE);
   cvSetMouseCallback( "Frames", mouseHandler, NULL );
   //Windows to show the learned templates
-  cvNamedWindow("pExamples",CV_WINDOW_KEEPRATIO);
-  cvNamedWindow("nExamples",CV_WINDOW_KEEPRATIO);
   cvNamedWindow("detections",CV_WINDOW_NORMAL);
   //TLD framework
   TLD tld;
   //Read parameters file
-  tld.read(fs.getFirstTopLevelNode());
+  tld.read(fs.getFirstTopLevelNode(),Size(box.width,box.height));
   Mat orig;
   Mat frame;
   Mat last_gray;
   Mat first;
   if (fromfolder){
     loadImage(orig,0,folder);
-    //cvtColor(orig, last_gray, CV_RGB2GRAY);
-    //equalizeHist(last_gray,last_gray);
-    tldEqualizeHist(orig,last_gray);
+    cvtColor(orig, last_gray, CV_RGB2GRAY);
     orig(roi).copyTo(first);
   }
   else if (fromfile){
     capture >> orig;
-    //cvtColor(orig, last_gray, CV_RGB2GRAY);
-    //equalizeHist(last_gray,last_gray);
-    tldEqualizeHist(orig,last_gray);
+    cvtColor(orig, last_gray, CV_RGB2GRAY);
     orig(roi).copyTo(first);
   }else{
     capture.set(CV_CAP_PROP_FRAME_WIDTH,340);
@@ -240,21 +224,17 @@ int main(int argc, char * argv[]){
   }
 
   first.copyTo(frame);
-  //cvtColor(frame, last_gray, CV_RGB2GRAY);
-  //equalizeHist(last_gray,last_gray);
-  tldEqualizeHist(frame,last_gray);
+  cvtColor(frame, last_gray, CV_RGB2GRAY);
 
   ///Initialization
 GETBOUNDINGBOX:
   while(!gotBB)
   {
     first.copyTo(frame);
-    //cvtColor(frame, last_gray, CV_RGB2GRAY);
-    //equalizeHist(last_gray,last_gray);
-    tldEqualizeHist(frame,last_gray);
+    cvtColor(frame, last_gray, CV_RGB2GRAY);
     drawBox(frame,box);
     imshow("Frames", frame);
-    if (cvWaitKey(33) == 'q')
+    if (cvWaitKey(30) == 'q')
       return 0;
   }
   if (min(box.width,box.height)<(int)fs.getFirstTopLevelNode()["min_win"]){
@@ -275,8 +255,6 @@ GETBOUNDINGBOX:
 
   /// TLD initialization
   tld.init(last_gray,box,bb_file);
-
-  cvWaitKey(0);
 
   /// Run-time
   Mat current_gray;
@@ -300,17 +278,12 @@ REPEAT:
     }
     // get frame
     frame = orig(roi);
-    //cvtColor(frame, current_gray, CV_RGB2GRAY);
-    //equalizeHist(current_gray,current_gray);
-    tldEqualizeHist(frame,current_gray);
+    cvtColor(frame, current_gray, CV_RGB2GRAY);
     /// Process Frame
     // begin measure processing time
     double t = (double)getTickCount();
     // process frame
     tld.processFrame(last_gray,current_gray,pts1,pts2,pbox,status,tl,bb_file);
-    // update the valve plan and coronary plan position
-    updatePlan(vplan,obox,pbox);
-    updatePlan(cplan,obox,pbox);
     obox = pbox;
     // end measure processing time
     t=(double)getTickCount()-t;
@@ -320,8 +293,6 @@ REPEAT:
       //drawPoints(frame,pts1);
       //drawPoints(frame,pts2,Scalar(0,255,0));
       drawBox(orig,cvRect(pbox.x+roi.x,pbox.y+roi.y,pbox.width,pbox.height),Scalar(0,0,255));
-      line(orig,vplan.start,vplan.end,Scalar(0,255,0));
-      line(orig,cplan.start,cplan.end,Scalar(0,255,0));
       detections++;
     }
     /// Draw ROI
@@ -335,7 +306,7 @@ REPEAT:
     frames++;
     imgnum++;
     printf("Detection rate: %d/%d\n",detections,frames);
-    if (cvWaitKey(500) == 'q')
+    if (cvWaitKey(30) == 'q')
       break;
   }
   if (rep){
