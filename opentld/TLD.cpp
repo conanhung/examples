@@ -78,6 +78,8 @@ void TLD::init(const Mat& frame1,const Rect& box,FILE* bb_file){
   lastvalid=true;
   //Print (x1,y1,x2,y2,xc,yc,conf)
   fprintf(bb_file,"%d,%d,%d,%d,%d,%d,%f\n",lastbox.x,lastbox.y,lastbox.br().x,lastbox.br().y,lastbox.x+lastbox.width/2,lastbox.y+lastbox.height/2,lastconf);
+  //Init Kalman filter
+  KalmanFilter_init(lastbox);
   //Prepare Classifier
   classifier.prepare(scales);
   ///Generate Data
@@ -306,7 +308,34 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
         lastboxfound = true;
       }
     }
+	else {				// not tracking & not detected - Using max Conservative Similarity
+		vector<float> m_tconf;
+		m_tconf.resize(dt.bb.size());
+		float m_tconf_max=0;
+		int i_max;
+		bool found_max_sim=false;
+		for (int i=0;i<dt.bb.size();i++){
+			Mat pattern;
+			Scalar mean, stdev;
+			getPattern(img2(grid[dt.bb[i]]),pattern,mean,stdev);
+			float dummy;
+			classifier.CalConf(pattern,dummy,m_tconf[i]); //Conservative Similarity
+			if(m_tconf[i]>m_tconf_max){
+				m_tconf_max=m_tconf[i];
+				i_max=i;
+				found_max_sim=true;
+			}
+		}
+		if(found_max_sim){
+			bbnext=grid[dt.bb[i_max]];
+			lastconf=m_tconf_max;
+			printf("Using max Conservative Similarity ..reinitializing tracker\n");
+			lastboxfound = true;
+		}
+	}
   }
+  // Update Kalman filter if lastbox found
+  KalmanFilter_run(bbnext,lastboxfound);
   lastbox=bbnext;
   if (lastboxfound)
     //Print (x1,y1,x2,y2,xc,yc,conf)
@@ -791,3 +820,54 @@ void TLD::clusterConf(const vector<BoundingBox>& dbb,const vector<float>& dconf,
   printf("\n");
 }
 
+void TLD::KalmanFilter_init(BoundingBox &box){
+	//Kalman filter init
+	KF = KalmanFilter(6, 4, 0);
+	state = Mat(6, 1, CV_32F);
+	measurement=Mat_<float>(4,1);
+	measurement.setTo(Scalar(0));
+	KF.transitionMatrix = *(Mat_<float>(6, 6) <<  1, 0, 0, 0, 1, 0,
+												0, 1, 0, 0, 0, 1,
+												0, 0, 1, 0, 1, 0,
+												0, 0, 0, 1, 0, 1,
+												0, 0, 0, 0, 1, 0,
+												0, 0, 0, 0, 0, 1);
+	setIdentity(KF.measurementMatrix);
+	float a = 1e-2;
+	KF.processNoiseCov = *((Mat_<float>(6, 6) <<  1/4*a,  0,      0,      0,      1/2*a,  0,
+													0,     1/4*a,  0,      0,      0,      1/2*a,
+													0,     0,      1/4*a,  0,      1/2*a,  0,
+													0,     0,      0,      1/4*a,  0,      1/2*a,
+												1/2*a,  0,      1/2*a,  0,      1*a,    0,
+													0,     1/2*a,  0,      1/2*a,  0,      1*a));
+	setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
+	setIdentity(KF.errorCovPost, Scalar::all(1));
+	//Kalman initialization
+	KF.statePre.at<float>(0) = box.x;
+	KF.statePre.at<float>(1) = box.y;
+	KF.statePre.at<float>(2) = box.x+box.width;
+	KF.statePre.at<float>(3) = box.y+box.height;
+	KF.statePre.at<float>(4) = 0;
+	KF.statePre.at<float>(5) = 0;
+
+	printf("KalmanFilter initialized...\n");
+}
+
+void TLD::KalmanFilter_run(BoundingBox &nbox, bool status){
+	
+	if (status){
+		//Kalman step 1: predict
+		KF.predict();
+		//Kalman step 2: update (if measurement exists)
+		measurement(0) = nbox.x;
+		measurement(1) = nbox.y;
+		measurement(2) = nbox.x+nbox.width;
+		measurement(3) = nbox.y+nbox.height;
+		state = KF.correct(measurement);
+	}
+	// update new box
+	nbox = Rect( state.at<float>(0),state.at<float>(1),
+							state.at<float>(2)-state.at<float>(0),state.at<float>(3)-state.at<float>(1) );
+
+	printf("KalmanFilter updated...\n");
+}

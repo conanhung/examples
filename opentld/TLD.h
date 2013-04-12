@@ -129,6 +129,11 @@ private:
   BoundingBox bbhull; // hull of good_boxes
   BoundingBox best_box; // maximum overlapping bbox
 
+  //Kalman filter
+	cv::KalmanFilter KF;
+	cv::Mat state;
+	cv::Mat_<float> measurement;
+
 public:
   //Constructors
   TLD();
@@ -157,4 +162,6 @@ public:
   double getVar(const BoundingBox& box,const cv::Mat& sum,const cv::Mat& sqsum);
   bool bbComp(const BoundingBox& bb1,const BoundingBox& bb2);
   int clusterBB(const std::vector<BoundingBox>& dbb,std::vector<int>& indexes);
+  void KalmanFilter_init(BoundingBox &box);
+  void KalmanFilter_run(BoundingBox &nbox, bool status);
 };

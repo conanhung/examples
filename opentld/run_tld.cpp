@@ -180,13 +180,19 @@ int main(int argc, char * argv[]){
   // HACK read option
 
   fs.open("parameters.yml", FileStorage::READ);
-  capture.open("data//men_jac.mov");
+  
+	/*capture.open("data//men_jac.mov");
+	roi = Rect(237,210,120,100);
+	box = Rect(287-237,260-210,35,24);*/
 
-  roi = Rect(237,218,120,120);
-  box = Rect(287-237,260-218,35,24);
+  capture.open("D://Tavi//interventions//201303191200REVNIC//201303191200REVNIC3//201303191200REVNIC3.mov");
+	roi = Rect(682,57,179,131);
+	box = Rect(757-682,89-57,32,28);
+
   gotBB = true;
   fromfile = true;
   tl=true;
+  rep=true;
 
   printf("Initial ROI = x:%d y:%d w:%d h:%d\n",roi.x,roi.y,roi.width,roi.height);
   // Init camera
@@ -284,6 +290,7 @@ REPEAT:
     double t = (double)getTickCount();
     // process frame
     tld.processFrame(last_gray,current_gray,pts1,pts2,pbox,status,tl,bb_file);
+	tl=false;
     obox = pbox;
     // end measure processing time
     t=(double)getTickCount()-t;
@@ -310,7 +317,7 @@ REPEAT:
       break;
   }
   if (rep){
-    rep = false;
+    //rep = false;
     tl = true;
     //fclose(bb_file);
     //bb_file = fopen("final_detector.txt","w");
@@ -384,47 +391,3 @@ REPEAT:
 //                }
 //            }
 //        }
-
-
-//----------------------------------------------------------------------------------------------
-//  //Kalman filter
-//  KalmanFilter KF(6, 4, 0);
-//  Mat state(6, 1, CV_32F);
-//  Mat_<float> measurement(4,1); measurement.setTo(Scalar(0));
-//  KF.transitionMatrix = *(Mat_<float>(6, 6) <<  1, 0, 0, 0, 1, 0,
-//                                                0, 1, 0, 0, 0, 1,
-//                                                0, 0, 1, 0, 1, 0,
-//                                                0, 0, 0, 1, 0, 1,
-//                                                0, 0, 0, 0, 1, 0,
-//                                                0, 0, 0, 0, 0, 1);
-//  setIdentity(KF.measurementMatrix);
-//  float a = 1e-2;
-//  KF.processNoiseCov = *((Mat_<float>(6, 6) <<  1/4*a,  0,      0,      0,      1/2*a,  0,
-//                                                 0,     1/4*a,  0,      0,      0,      1/2*a,
-//                                                 0,     0,      1/4*a,  0,      1/2*a,  0,
-//                                                 0,     0,      0,      1/4*a,  0,      1/2*a,
-//                                                1/2*a,  0,      1/2*a,  0,      1*a,    0,
-//                                                 0,     1/2*a,  0,      1/2*a,  0,      1*a));
-//  setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
-//  setIdentity(KF.errorCovPost, Scalar::all(1));
-//  //Kalman initialization
-//  KF.statePre.at<float>(0) = box.x;
-//  KF.statePre.at<float>(1) = box.y;
-//  KF.statePre.at<float>(2) = box.x+box.width;
-//  KF.statePre.at<float>(3) = box.y+box.height;
-//  KF.statePre.at<float>(4) = 0;
-//  KF.statePre.at<float>(5) = 0;
-//    //Kalman step 1: predict
-//    KF.predict();
-//    //Kalman step 2: update (if measurement exists)
-//    if (status){
-//      measurement(0) = pbox.x;
-//      measurement(1) = pbox.y;
-//      measurement(2) = pbox.x+pbox.width;
-//      measurement(3) = pbox.y+pbox.height;
-//      state = KF.correct(measurement);
-//    }
-//    CvRect estBox = cvRect( state.at<float>(0),state.at<float>(1),
-//                            state.at<float>(2)-state.at<float>(0),state.at<float>(3)-state.at<float>(1) );
-//    //Draw Kalman box
-//    drawBox(frame,estBox,Scalar(0,0,255));

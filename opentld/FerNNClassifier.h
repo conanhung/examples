@@ -30,6 +30,7 @@ public:
   void trainF(const std::vector<std::pair<std::vector<int>,int> >& ferns,int resample);
   void trainNN(const std::vector<cv::Mat>& nn_examples);
   void NNConf(const cv::Mat& example,std::vector<int>& isin,float& rsconf,float& csconf);
+  void CalConf(const cv::Mat& example, float& rsconf, float& csconf);
   void evaluateTh(const std::vector<std::pair<std::vector<int>,int> >& nXT,const std::vector<cv::Mat>& nExT);
   void showpEx();
   void shownEx();

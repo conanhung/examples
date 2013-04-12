@@ -193,6 +193,57 @@ void FerNNClassifier::NNConf(const Mat& example, vector<int>& isin,float& rsconf
   csconf =(float)dN / (dN + dP);
 }
 
+void FerNNClassifier::CalConf(const Mat& example, float& rsconf, float& csconf){
+  /*Inputs:
+   * -NN Patch
+   * Outputs:
+   * -Relative Similarity (rsconf), Conservative Similarity (csconf)
+   */
+  if (pEx.empty()){ //if isempty(tld.pex) % IF positive examples in the model are not defined THEN everything is negative
+    rsconf = 0; //    conf1 = zeros(1,size(x,2));
+    csconf=0;
+    return;
+  }
+  if (nEx.empty()){ //if isempty(tld.nex) % IF negative examples in the model are not defined THEN everything is positive
+    rsconf = 1;   //    conf1 = ones(1,size(x,2));
+    csconf=1;
+    return;
+  }
+  Mat ncc(1,1,CV_32F);
+  float nccP,csmaxP,maxP=0;
+  bool anyP=false;
+  size_t maxPidx,validatedPart = ceil(pEx.size()*valid);
+  float nccN, maxN=0;
+  bool anyN=false;
+  for (size_t i=0;i<pEx.size();i++){
+    matchTemplate(pEx[i],example,ncc,CV_TM_CCORR_NORMED);      // measure NCC to positive examples
+    nccP=(((float*)ncc.data)[0]+1)*0.5;
+    if (nccP>ncc_thesame)
+      anyP=true;
+    if(nccP > maxP){
+      maxP=nccP;
+      maxPidx = i;
+      if(i<validatedPart)
+        csmaxP=maxP;
+    }
+  }
+  for (size_t i=0;i<nEx.size();i++){
+    matchTemplate(nEx[i],example,ncc,CV_TM_CCORR_NORMED);     //measure NCC to negative examples
+    nccN=(((float*)ncc.data)[0]+1)*0.5;
+    if (nccN>ncc_thesame)
+      anyN=true;
+    if(nccN > maxN)
+      maxN=nccN;
+  }
+  //Measure Relative Similarity
+  float dN=1-maxN;
+  float dP=1-maxP;
+  rsconf = (float)dN/(dN+dP);
+  //Measure Conservative Similarity
+  dP = 1 - csmaxP;
+  csconf =(float)dN / (dN + dP);
+}
+
 void FerNNClassifier::evaluateTh(const vector<pair<vector<int>,int> >& nXT,const vector<cv::Mat>& nExT){
   float fconf;
   for (size_t i=0;i<nXT.size();i++){
