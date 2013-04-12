@@ -343,8 +343,8 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
   else
     fprintf(bb_file,"NaN,NaN,NaN,NaN,NaN,NaN,NaN\n");
   // learning
-  if (lastvalid && tl)
-	learn(img2);
+  /*if (lastvalid && tl)
+	learn(img2);*/
 }
 
 
@@ -834,12 +834,12 @@ void TLD::KalmanFilter_init(BoundingBox &box){
 												0, 0, 0, 0, 0, 1);
 	setIdentity(KF.measurementMatrix);
 	float a = 1e-2;
-	KF.processNoiseCov = *((Mat_<float>(6, 6) <<  1/4*a,  0,      0,      0,      1/2*a,  0,
-													0,     1/4*a,  0,      0,      0,      1/2*a,
-													0,     0,      1/4*a,  0,      1/2*a,  0,
-													0,     0,      0,      1/4*a,  0,      1/2*a,
-												1/2*a,  0,      1/2*a,  0,      1*a,    0,
-													0,     1/2*a,  0,      1/2*a,  0,      1*a));
+	KF.processNoiseCov = *((Mat_<float>(6, 6) <<  0.25*a,  0,      0,      0,      0.5*a,  0,
+													0,     0.25*a,  0,      0,      0,      0.5*a,
+													0,     0,      0.25*a,  0,      0.5*a,  0,
+													0,     0,      0,      0.25*a,  0,      0.5*a,
+												0.5*a,  0,      0.5*a,  0,      1*a,    0,
+													0,     0.5*a,  0,      0.5*a,  0,      1*a));
 	setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
 	setIdentity(KF.errorCovPost, Scalar::all(1));
 	//Kalman initialization
