@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 2.8.8 )
 set ( CMAKE_BUILD_TYPE Release )
 
 # Set PATH
-set ( CMAKE_PREFIX_PATH "C:\\Qt\\Qt5.0.0\\5.0.0\\msvc2010\\" )
+set ( CMAKE_PREFIX_PATH "C:\\Qt\\Qt5.0.2\\5.0.2\\msvc2010\\" )
 set ( OpenCV_DIR "D:\\Libs\\opencv\\vs2010" )
 
 add_definitions ( -Wall )

@@ -229,13 +229,13 @@ double TLD::getVar(const BoundingBox& box,const Mat& sum,const Mat& sqsum){
   return sqmean-mean*mean;
 }
 
-void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& points1,vector<Point2f>& points2,BoundingBox& bbnext,bool& lastboxfound, bool tl, FILE* bb_file){
+void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& points1,vector<Point2f>& points2,BoundingBox& bbnext,bool& lastboxfound, bool btrack, bool blearn, FILE* bb_file){
   vector<BoundingBox> cbb;
   vector<float> cconf;
   int confident_detections=0;
   int didx; //detection index
   ///Track
-  if(lastboxfound && tl){
+  if(lastboxfound && btrack){
     track(img1,img2,points1,points2);
   }
   else{
@@ -269,7 +269,7 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
         int cx=0,cy=0,cw=0,ch=0;
         int close_detections=0;
         for (size_t i=0;i<dbb.size();i++){
-          if(bbOverlap(tbb,dbb[i])>0.3){                     // Get mean of close detections
+          if(bbOverlap(tbb,dbb[i])>0.5){                     // Get mean of close detections
             cx += dbb[i].x;
             cy +=dbb[i].y;
             cw += dbb[i].width;
@@ -334,8 +334,9 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
 		}
 	}
   }
-  // Update Kalman filter if lastbox found
-  KalmanFilter_run(bbnext,lastboxfound);
+  // Update Kalman filter if not tracked & lastbox found
+  if(!tracked)
+	KalmanFilter_run(bbnext,lastboxfound);
   lastbox=bbnext;
   if (lastboxfound)
     //Print (x1,y1,x2,y2,xc,yc,conf)
@@ -343,8 +344,8 @@ void TLD::processFrame(const cv::Mat& img1,const cv::Mat& img2,vector<Point2f>& 
   else
     fprintf(bb_file,"NaN,NaN,NaN,NaN,NaN,NaN,NaN\n");
   // learning
-  /*if (lastvalid && tl)
-	learn(img2);*/
+  if (lastvalid && blearn)
+	learn(img2);
 }
 
 
