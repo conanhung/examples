@@ -1,0 +1,3 @@
+PROJECT(CellTrack C)
+ADD_EXECUTABLE(CellTrack MyApp.cpp)
+TARGET_LINK_LIBRARIES(CellTrack )
