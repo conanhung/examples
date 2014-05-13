@@ -175,7 +175,7 @@ CvRect findBB(Mat imgSrc)
 
 int main()
 {
-    Mat sudoku = imread("sudoku.jpg",0);
+    Mat sudoku = imread("../sudoku.jpg",0);
 
     //Mat sudoku;
     //pyrDown(imread("sudoku3.jpg", 0), sudoku);
@@ -427,7 +427,7 @@ int main()
     src[2] = ptBottomRight;
     dst[2] = Point2f(maxLength-1, maxLength-1);
     src[3] = ptBottomLeft;
-    dst[3] = Point2f(0, maxLength-1);
+    dst[3] = Point2f(0, maxLength-1); 
 
     Mat undistorted = Mat(Size(maxLength, maxLength), CV_8UC1);
     cv::warpPerspective(original, undistorted, cv::getPerspectiveTransform(src, dst), Size(maxLength, maxLength));
