@@ -1,0 +1,3 @@
+/home/hung/dev/examples/Find-Object-0.4.1-Source/build/example/CMakeFiles/example.dir
+/home/hung/dev/examples/Find-Object-0.4.1-Source/build/app/CMakeFiles/find_object.dir
+/home/hung/dev/examples/Find-Object-0.4.1-Source/build/CMakeFiles/uninstall.dir

@@ -5,7 +5,7 @@
 # Please give us feedback about your Makefile experience if you think your
 #  feedback would benefit other users too.
 
-CV_ROOT = "/usr/include/opencv"
+CV_ROOT = "/home/hung/dev/opencv-2.4.8"
 WX_ROOT = "/usr/include/wx-2.8/wx"
 CXX     = g++
 

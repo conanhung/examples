@@ -1,8 +1,8 @@
 // Sudoku Solver.cpp : Defines the entry point for the console application.
 //
 
-#include <cv.h>
-#include <highgui.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "digitRecognizer.h"
 
@@ -450,7 +450,7 @@ int main()
     waitKey(0);
 
     DigitRecognizer *dr = new DigitRecognizer();
-    bool b = dr->train("D:/Test/Character Recognition/train-images.idx3-ubyte", "D:/Test/Character Recognition/train-labels.idx1-ubyte");
+    bool b = dr->train("../train-images-idx3-ubyte", "../train-labels-idx1-ubyte");
     printf("Trained: %d\n", b);
 
     int dist = ceil((double)maxLength/9);
@@ -501,8 +501,8 @@ int main()
 
                 // printf("Shown\n");
                 printf("%d ", number);
-                /*imshow("test", currentCell);
-                waitKey(0);*/
+                //imshow("test", currentCell);
+                //waitKey(0);
             }
             else
             {
@@ -514,7 +514,7 @@ int main()
         printf("\n");
     }
 
-    waitKey(0);
+    //waitKey(0);
 
     return 0;
 }

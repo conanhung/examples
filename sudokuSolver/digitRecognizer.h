@@ -1,6 +1,6 @@
-#include <cv.h>
-#include <highgui.h>
-#include <ml.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <stdio.h>
 
 using namespace cv;
 

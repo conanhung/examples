@@ -808,6 +808,8 @@ void MainWindow::update(const cv::Mat & image)
 		{
 			img =  cv::Mat(&iplImage);
 		}
+		
+		// --- Image processing here !!!
 
 		// EXTRACT KEYPOINTS
 		cv::FeatureDetector * detector = Settings::createFeaturesDetector();

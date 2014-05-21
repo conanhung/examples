@@ -1,0 +1,8 @@
+-I/usr/local/include/opencv
+-I/usr/local/include
+-DPROJECT_PREFIX="find_object"
+-DPROJECT_NAME="Find-Object"
+-DPROJECT_VERSION="0.4.1"
+-o
+/home/hung/dev/examples/Find-Object-0.4.1-Source/build/app/__/src/moc_AboutDialog.cxx
+/home/hung/dev/examples/Find-Object-0.4.1-Source/src/AboutDialog.h
